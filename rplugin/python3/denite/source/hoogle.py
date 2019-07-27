@@ -27,6 +27,14 @@ HIGHLIGHT = (
     "highlight default link deniteSource_hoogleDataModule Typedef",
     "highlight default link deniteSource_hoogleDataSymbol Identifier",
 
+    r"syntax match deniteSource_hoogleClass /\S\+\s\+class\s\+.*/ contained keepend containedin=deniteSource_hoogle contains=deniteSource_hoogleClassModule",
+    r"syntax match deniteSource_hoogleClassModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleClassKeyword",
+    r"syntax match deniteSource_hoogleClassKeyword /class\s\+/ contained contains=deniteMatchRange nextgroup=deniteSource_hoogleClassSymbol",
+    r"syntax match deniteSource_hoogleClassSymbol /.*/ contained contains=deniteMatchedRange",
+    "highlight default link deniteSource_hoogleClassKeyword Keyword",
+    "highlight default link deniteSource_hoogleClassModule Typedef",
+    "highlight default link deniteSource_hoogleClassSymbol Identifier",
+
     r"syntax match deniteSource_hoogleSig /\S\+\s\+.\{-}\s\+::\s\+.*/ contained containedin=deniteSource_hoogle keepend contains=deniteSource_hoogleSigModule",
     r"syntax match deniteSource_hoogleSigModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleSigIdentifier",
     r"syntax match deniteSource_hoogleSigIdentifier /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleSigType",
@@ -39,6 +47,7 @@ HIGHLIGHT = (
 PACKAGE_RE = re.compile(r"package (\S+)")
 MODULE_RE = re.compile(r"module (\S+)")
 DATA_RE = re.compile(r"(\S+) data (.*)")
+CLASS_RE = re.compile(r"(\S+) class (.*)")
 SIG_RE = re.compile(r"(\S+) (.*?) :: (.*)")
 HREF_SPLIT_RE = re.compile(r"(.*?) -- ((?:http|file).*)")
 
@@ -128,6 +137,11 @@ class Source(Base):
                 m = DATA_RE.fullmatch(pre)
                 if m:
                     candidate = {"word": pre, "action__module": m.group(1), "action__datatype": m.group(2), "action__href": href}
+
+            if not candidate:
+                m = CLASS_RE.fullmatch(pre)
+                if m:
+                    candidate = {"word": pre, "action__module": m.group(1), "action__class": m.group(2), "action__href": href}
 
             if not candidate:
                 m = SIG_RE.fullmatch(pre)

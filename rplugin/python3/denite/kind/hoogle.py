@@ -1,4 +1,15 @@
+import re
+
 from .base import Base
+
+TYPE_IDENTIFIER_RE = re.compile(r"\b[A-Z][a-zA-Z0-9_']*\b")
+
+def _import_type_identifier_for_decl(symbol):
+    m = TYPE_IDENTIFIER_RE.match(symbol)
+    if m:
+        return m.group(0)
+    else:
+        return symbol
 
 class Kind(Base):
     def __init__(self, vim):
@@ -21,7 +32,9 @@ class Kind(Base):
             if "action__module" in target and "action__symbol" in target:
                 import_text = "import {action__module} ({action__symbol})\n".format(**target)
             elif "action__module" in target and "action__datatype" in target:
-                import_text = "import {action__module} ({action__datatype}(..))\n".format(**target)
+                import_text = "import {action__module} ({ident}(..))\n".format(ident=_import_type_identifier_for_decl(target["action__datatype"]), **target)
+            elif "action__module" in target and "action__class" in target:
+                import_text = "import {action__module} ({ident})\n".format(ident=_import_type_identifier_for_decl(target["action__class"]), **target)
             elif "action__module" in target:
                 module = target["action__module"]
                 module_abbr = module.split(".")[-1][:1].upper()
