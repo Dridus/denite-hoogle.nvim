@@ -98,7 +98,10 @@ class Source(Base):
         args += self.vars["command"][1:]
         args += self.vars["default_opts"]
         if context["input"]:
-            args += util.split_input(context["input"])
+            if "|" in context["input"]:
+                args += util.split_input(context["input"].split("|")[0])
+            else:
+                args += [util.split_input(context["input"])[0]]
 
         self.print_message(context, args)
 
