@@ -21,34 +21,46 @@ HIGHLIGHT = (
 
     r"syntax match deniteSource_hoogleData /\S\+\s\+data\s\+.*/ contained keepend containedin=deniteSource_hoogle contains=deniteSource_hoogleDataModule",
     r"syntax match deniteSource_hoogleDataModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleDataKeyword",
-    r"syntax match deniteSource_hoogleDataKeyword /data\s\+/ contained contains=deniteMatchRange nextgroup=deniteSource_hoogleDataSymbol",
-    r"syntax match deniteSource_hoogleDataSymbol /.*/ contained contains=deniteMatchedRange",
+    r"syntax match deniteSource_hoogleDataKeyword /data\s\+/ contained contains=deniteMatchRange nextgroup=deniteSource_hoogleDataPattern",
+    r"syntax match deniteSource_hoogleDataPattern /.*/ contained contains=deniteMatchedRange",
     "highlight default link deniteSource_hoogleDataKeyword Keyword",
     "highlight default link deniteSource_hoogleDataModule Typedef",
-    "highlight default link deniteSource_hoogleDataSymbol Identifier",
+    "highlight default link deniteSource_hoogleDataPattern Identifier",
 
     r"syntax match deniteSource_hoogleClass /\S\+\s\+class\s\+.*/ contained keepend containedin=deniteSource_hoogle contains=deniteSource_hoogleClassModule",
     r"syntax match deniteSource_hoogleClassModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleClassKeyword",
-    r"syntax match deniteSource_hoogleClassKeyword /class\s\+/ contained contains=deniteMatchRange nextgroup=deniteSource_hoogleClassSymbol",
-    r"syntax match deniteSource_hoogleClassSymbol /.*/ contained contains=deniteMatchedRange",
+    r"syntax match deniteSource_hoogleClassKeyword /class\s\+/ contained contains=deniteMatchRange nextgroup=deniteSource_hoogleClassPattern",
+    r"syntax match deniteSource_hoogleClassPattern /.*/ contained contains=deniteMatchedRange",
     "highlight default link deniteSource_hoogleClassKeyword Keyword",
     "highlight default link deniteSource_hoogleClassModule Typedef",
-    "highlight default link deniteSource_hoogleClassSymbol Identifier",
+    "highlight default link deniteSource_hoogleClassPattern Identifier",
 
-    r"syntax match deniteSource_hoogleSig /\S\+\s\+.\{-}\s\+::\s\+.*/ contained containedin=deniteSource_hoogle keepend contains=deniteSource_hoogleSigModule",
-    r"syntax match deniteSource_hoogleSigModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleSigIdentifier",
-    r"syntax match deniteSource_hoogleSigIdentifier /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleSigType",
-    r"syntax match deniteSource_hoogleSigType /::\s\+.*/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleSigType",
-    "highlight default link deniteSource_hoogleSigModule Typedef",
-    "highlight default link deniteSource_hoogleSigIdentifier Identifier",
-    "highlight default link deniteSource_hoogleSigType Typedef",
+    r"syntax match deniteSource_hoogleType /\S\+\s\+type\s\+.\{-1,}\s\+=\s\+.*/ contained keepend containedin=deniteSource_hoogle contains=deniteSource_hoogleTypeModule",
+    r"syntax match deniteSource_hoogleTypeModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleTypeKeyword",
+    r"syntax match deniteSource_hoogleTypeKeyword /type\s\+/ contained contains=deniteMatchRange nextgroup=deniteSource_hoogleTypePattern",
+    r"syntax match deniteSource_hoogleTypePattern /[^=]\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleTypeEquate",
+    r"syntax match deniteSource_hoogleTypeEquate /=\s\+/ contained nextgroup=deniteSource_hoogleTypeTarget",
+    r"syntax match deniteSource_hoogleTypeTarget /.*/ contained contains=deniteMatchedRange",
+    "highlight default link deniteSource_hoogleTypeModule Typedef",
+    "highlight default link deniteSource_hoogleTypeEquate Operator",
+    "highlight default link deniteSource_hoogleTypeKeyword Keyword",
+    "highlight default link deniteSource_hoogleTypePattern Identifier",
+
+    r"syntax match deniteSource_hoogleValue /\S\+\s\+.\{-1,}\s\+::\s\+.*/ contained containedin=deniteSource_hoogle keepend contains=deniteSource_hoogleValueModule",
+    r"syntax match deniteSource_hoogleValueModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueIdentifier",
+    r"syntax match deniteSource_hoogleValueIdentifier /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueType",
+    r"syntax match deniteSource_hoogleValueType /::\s\+.*/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueType",
+    "highlight default link deniteSource_hoogleValueModule Typedef",
+    "highlight default link deniteSource_hoogleValueIdentifier Identifier",
+    "highlight default link deniteSource_hoogleValueType Typedef",
 )
 
 PACKAGE_RE = re.compile(r"package (\S+)")
 MODULE_RE = re.compile(r"module (\S+)")
 DATA_RE = re.compile(r"(\S+) data (.*)")
 CLASS_RE = re.compile(r"(\S+) class (.*)")
-SIG_RE = re.compile(r"(\S+) (.*?) :: (.*)")
+TYPE_RE = re.compile(r"(\S+) type (.*?) = (.*)")
+VALUE_RE = re.compile(r"(\S+) (.*?) :: (.*)")
 HREF_SPLIT_RE = re.compile(r"(.*?) -- ((?:http|file).*)")
 
 class Source(Base):
@@ -75,12 +87,19 @@ class Source(Base):
 
     def highlight(self):
         for com in HIGHLIGHT:
-            self.vim.command(com)
-        for com in SYNTAX:
-            self.vim.command(com)
+            try:
+                self.vim.command(com)
+            except:
+                self.debug("Raised exception running highlight command: {}".format(com))
+                raise
 
     def define_syntax(self):
-        pass
+        for com in SYNTAX:
+            try:
+                self.vim.command(com)
+            except:
+                self.debug("Raised exception running syntax command: {}".format(com))
+                raise
 
     def gather_candidates(self, context):
         if context["event"] == "interactive":
@@ -139,17 +158,22 @@ class Source(Base):
             if not candidate:
                 m = DATA_RE.fullmatch(pre)
                 if m:
-                    candidate = {"word": pre, "action__module": m.group(1), "action__datatype": m.group(2), "action__href": href}
+                    candidate = {"word": pre, "action__data": {"module": m.group(1), "pattern": m.group(2)}, "action__href": href}
 
             if not candidate:
                 m = CLASS_RE.fullmatch(pre)
                 if m:
-                    candidate = {"word": pre, "action__module": m.group(1), "action__class": m.group(2), "action__href": href}
+                    candidate = {"word": pre, "action__class": {"module": m.group(1), "pattern": m.group(2)}, "action__href": href}
 
             if not candidate:
-                m = SIG_RE.fullmatch(pre)
+                m = TYPE_RE.fullmatch(pre)
                 if m:
-                    candidate = {"word": pre, "action__module": m.group(1), "action__symbol": m.group(2), "action__type": m.group(3), "action__href": href}
+                    candidate = {"word": pre, "action__type": {"module": m.group(1), "pattern": m.group(2), "target" : m.group(3)}, "action__href": href}
+
+            if not candidate:
+                m = VALUE_RE.fullmatch(pre)
+                if m:
+                    candidate = {"word": pre, "action__value": {"module": m.group(1), "identifier": m.group(2), "type": m.group(3)}, "action__href": href}
 
             if not candidate:
                 candidate = {"word": pre, "action__href": href}
