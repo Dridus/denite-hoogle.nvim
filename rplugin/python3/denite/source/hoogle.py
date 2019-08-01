@@ -48,10 +48,12 @@ HIGHLIGHT = (
 
     r"syntax match deniteSource_hoogleValue /\S\+\s\+.\{-1,}\s\+::\s\+.*/ contained containedin=deniteSource_hoogle keepend contains=deniteSource_hoogleValueModule",
     r"syntax match deniteSource_hoogleValueModule /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueIdentifier",
-    r"syntax match deniteSource_hoogleValueIdentifier /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueType",
-    r"syntax match deniteSource_hoogleValueType /::\s\+.*/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueType",
+    r"syntax match deniteSource_hoogleValueIdentifier /\S\+\s\+/ contained contains=deniteMatchedRange nextgroup=deniteSource_hoogleValueTypeSymbol",
+    r"syntax match deniteSource_hoogleValueTypeSymbol /::\s\+/ contained nextgroup=deniteSource_hoogleValueType",
+    r"syntax match deniteSource_hoogleValueType /.*/ contained contains=deniteMatchedRange",
     "highlight default link deniteSource_hoogleValueModule Typedef",
     "highlight default link deniteSource_hoogleValueIdentifier Identifier",
+    "highlight default link deniteSource_hoogleValueTypeSymbol Operator",
     "highlight default link deniteSource_hoogleValueType Typedef",
 )
 
