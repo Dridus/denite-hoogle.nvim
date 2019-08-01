@@ -80,7 +80,23 @@ class Source(Base):
 
     def on_init(self, context):
         context["__proc"] = None
-        context["is_interactive"] = True
+        context["__query"] = context["input"] if "input" in context else ""
+
+        args = context["args"]
+        args.reverse()
+
+        input_arg = None
+        if args:
+            input_arg = args.pop()
+            if input_arg == "!":
+                context["is_interactive"] = True
+                context["__query"] = context["input"]
+            else:
+                context["__query"] = input_arg
+        elif context["input"]:
+            context["__query"] = context["input"]
+        else:
+            context["__query"] = util.input(self.vim, context, "Query: ")
 
     def on_close(self, context):
         if context["__proc"]:
@@ -106,23 +122,20 @@ class Source(Base):
     def gather_candidates(self, context):
         if context["event"] == "interactive":
             self.on_close(context)
+            context["__query"] = context["input"]
 
         if context["__proc"]:
-            self.print_message(context, "have async")
             return self._async_gather_candidates(context, context["async_timeout"])
 
         if not self.vars["command"]:
-            self.print_message(context, "no command")
-            return []
+            return [{"word": "No hoogle command configured."}]
 
         args = [util.expand(self.vars["command"][0])]
         args += self.vars["command"][1:]
         args += self.vars["default_opts"]
-        if context["input"]:
-            if "|" in context["input"]:
-                args += util.split_input(context["input"].split("|")[0])
-            else:
-                args += [util.split_input(context["input"])[0]]
+        args.append("--")
+        if context["__query"]:
+            args += util.split_input(context["__query"])
 
         self.print_message(context, args)
 
